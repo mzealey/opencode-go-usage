@@ -30,6 +30,9 @@ jobs:
       - name: Test
         run: bun test
 
+      - name: Check generated TUI is current
+        run: bun run check:dist
+
   package:
     # Proves the package the way OpenCode loads it: exports resolvable, all
     # three parts present. No publish — this plugin is installed by path.
@@ -52,6 +55,6 @@ jobs:
         run: |
           set -euo pipefail
           tar tzf dist/*.tgz | sort | tee /tmp/files
-          for part in package/src/index.ts package/src/tui.tsx package/src/rpc.ts; do
+          for part in package/src/index.ts package/src/rpc.ts package/dist/tui.js package/dist/rpc.ts package/dist/usage.ts; do
             grep -qx "$part" /tmp/files || { echo "missing $part"; exit 1; }
           done

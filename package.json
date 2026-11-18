@@ -14,13 +14,17 @@
   ],
   "exports": {
     ".": "./src/index.ts",
-    "./tui": "./src/tui.tsx",
+    "./tui": "./dist/tui.js",
     "./rpc": "./src/rpc.ts"
   },
   "files": [
-    "src"
+    "src",
+    "dist"
   ],
   "scripts": {
+    "build:tui": "bun scripts/build-tui.ts",
+    "check:dist": "bun run build:tui && git diff --exit-code -- dist",
+    "prepack": "bun run build:tui",
     "typecheck": "tsc --noEmit",
     "test": "bun test",
     "usage": "bun scripts/usage.ts"
@@ -40,12 +44,16 @@
     }
   },
   "devDependencies": {
+    "@babel/core": "^7.29.7",
+    "@babel/preset-typescript": "^7.29.7",
     "@opencode/plugin": "2.3.2",
     "@opencode/theme": "2.3.2",
     "@opentui/core": "0.8.4",
     "@opentui/solid": "0.8.4",
+    "@types/babel__core": "^7.20.5",
     "@types/bun": "^1.4.4",
     "@types/node": "^24.12.2",
+    "babel-preset-solid": "^1.9.16",
     "solid-js": "1.9.17",
     "typescript": "^5.9.3"
   }

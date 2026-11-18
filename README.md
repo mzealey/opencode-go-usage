@@ -214,6 +214,8 @@ which made the rows drift.
 ```
 bun install
 bunx tsc --noEmit          # typecheck
+bun run build:tui          # regenerate the committed dist/ after editing the TUI
+bun run check:dist         # verify the generated TUI is current
 bun scripts/usage.ts       # hit the endpoint with the active local credential
 ```
 
