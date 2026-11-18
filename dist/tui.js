@@ -9,13 +9,11 @@ import { createElement as _$createElement } from "opentui:runtime-module:%40open
 /**
  * TUI part: OpenCode Go allowance inside the right-hand sidebar.
  *
- * Polling belongs to the mounted panel, not to setup: a plugin reload disposes
- * setup's timers while the host can keep the last rendered panel on screen, and
- * the panel then sits there frozen. A component that owns its own timer keeps
- * updating for as long as it is actually on screen.
+ * The poll timer lives in `setup`, next to the RPC client it calls. Keeping it
+ * out of the panel avoids depending on how the host mounts slot content.
  */
 import { Plugin, usePlugin } from "opentui:runtime-module:%40opencode%2Fplugin%2Ftui";
-import { For, Show, createSignal, onCleanup, onMount } from "opentui:runtime-module:solid-js";
+import { For, Show, createSignal } from "opentui:runtime-module:solid-js";
 import { GoUsage } from "./rpc.ts";
 import { errorMessage } from "./usage.ts";
 const [state, setState] = createSignal({
@@ -151,23 +149,6 @@ function Panel(props) {
   const today = () => snapshot()?.windows.find(item => item.id === "today");
   const rest = () => snapshot()?.windows.filter(item => item.id !== "today") ?? [];
   const fresh = () => snapshot() ? age(snapshot().fetchedAt, tick()) : "";
-  onMount(() => {
-    let stopped = false;
-    let timer;
-    const tick = () => setTick(Date.now());
-    const clock = setInterval(tick, 30_000);
-    const run = async () => {
-      const ok = await props.poll(false);
-      if (stopped) return;
-      timer = setTimeout(run, ok ? props.intervalMs : RETRY_MS);
-    };
-    void run();
-    onCleanup(() => {
-      stopped = true;
-      clearInterval(clock);
-      if (timer !== undefined) clearTimeout(timer);
-    });
-  });
   return (() => {
     var _el$0 = _$createElement("box"),
       _el$1 = _$createElement("box"),
@@ -327,26 +308,23 @@ export default Plugin.define({
     function error() {
       return state().error ?? (state().snapshot?.ok === false ? state().snapshot?.error : undefined);
     }
-
-    // Belt and braces: the mounted panel owns its own timer, and this one keeps
-    // the shared state fresh even if the host leaves the panel unmounted (a
-    // sidebar that is closed, or a stale render from before a reload). The
-    // server caches for a minute, so the extra call is free.
-    const fallback = setInterval(() => void poll(false), intervalMs);
+    void poll(false);
+    const pollTimer = setInterval(() => void poll(false), intervalMs);
+    // Keeps the age and the reset countdowns honest between polls.
+    const clock = setInterval(() => setTick(Date.now()), 30_000);
     context.ui.slot({
       append: "sidebar.content",
       render: () => _$createComponent(Panel, {
         get collapsed() {
           return ui.collapsed;
         },
-        onToggle: toggle,
-        poll: poll,
-        intervalMs: intervalMs
+        onToggle: toggle
       })
     });
     return () => {
       disposed = true;
-      clearInterval(fallback);
+      clearInterval(pollTimer);
+      clearInterval(clock);
     };
   }
 });
